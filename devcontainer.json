@@ -47,6 +47,7 @@
     "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude/settings.json,target=/home/vscode/.claude/host-settings.json,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/hooks,target=/home/vscode/.claude/hooks,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/status_lines,target=/home/vscode/.claude/status_lines,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/commands,target=/home/vscode/.claude/commands,type=bind,readonly",

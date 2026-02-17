@@ -2,6 +2,15 @@
 
 A sandboxed development environment for running Claude Code with `bypassPermissions` safely enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
 
+## Developer Notes
+
+To make changes to the Docker image follow these steps:
+
+1. Update [Dockerfile](./Dockerfile) and/or [devcontainer.json](./devcontainer.json).
+2. Push changes to the remote Github repo.
+3. CD into `~/.claude-devcontainer` and run `git pull`.
+4. CD into your project and run `devc . && devc rebuild && devc shell`
+
 ## Why Use This?
 
 Running Claude with `bypassPermissions` on your host machine is risky—it can execute any command without confirmation. This devcontainer provides **filesystem isolation** so you get the productivity benefits of unrestricted Claude without risking your host system.

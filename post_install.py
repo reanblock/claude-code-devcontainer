@@ -16,19 +16,32 @@ from pathlib import Path
 
 
 def setup_claude_settings():
-    """Configure Claude Code with bypassPermissions enabled."""
+    """Configure Claude Code with bypassPermissions enabled.
+
+    Merges host settings (mounted read-only at ~/.claude/host-settings.json)
+    with container defaults, ensuring bypassPermissions is always enabled.
+    """
     claude_dir = Path.home() / ".claude"
     claude_dir.mkdir(parents=True, exist_ok=True)
 
     settings_file = claude_dir / "settings.json"
+    host_settings_file = claude_dir / "host-settings.json"
 
-    # Load existing settings or start fresh
+    # Start with host settings if available
     settings = {}
+    if host_settings_file.exists():
+        with contextlib.suppress(json.JSONDecodeError):
+            settings = json.loads(host_settings_file.read_text())
+            print(f"[post_install] Loaded host settings from: {host_settings_file}", file=sys.stderr)
+
+    # Merge with existing container settings
     if settings_file.exists():
         with contextlib.suppress(json.JSONDecodeError):
-            settings = json.loads(settings_file.read_text())
+            existing = json.loads(settings_file.read_text())
+            existing.update(settings)
+            settings = existing
 
-    # Set bypassPermissions mode
+    # Always enforce bypassPermissions mode
     if "permissions" not in settings:
         settings["permissions"] = {}
     settings["permissions"]["defaultMode"] = "bypassPermissions"
