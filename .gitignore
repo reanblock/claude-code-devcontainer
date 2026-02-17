@@ -2,3 +2,7 @@ __pycache__/
 .ruff_cache/
 *.pyc
 .DS_Store
+
+# claude
+logs
+.claude/data
