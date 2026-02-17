@@ -27,19 +27,12 @@ def setup_claude_settings():
     settings_file = claude_dir / "settings.json"
     host_settings_file = claude_dir / "host-settings.json"
 
-    # Start with host settings if available
+    # Start with host settings, ignoring any stale container settings
     settings = {}
     if host_settings_file.exists():
         with contextlib.suppress(json.JSONDecodeError):
             settings = json.loads(host_settings_file.read_text())
             print(f"[post_install] Loaded host settings from: {host_settings_file}", file=sys.stderr)
-
-    # Merge with existing container settings
-    if settings_file.exists():
-        with contextlib.suppress(json.JSONDecodeError):
-            existing = json.loads(settings_file.read_text())
-            existing.update(settings)
-            settings = existing
 
     # Always enforce bypassPermissions mode
     if "permissions" not in settings:
