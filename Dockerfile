@@ -73,12 +73,6 @@ USER vscode
 # Set PATH early so claude and other user-installed binaries are available
 ENV PATH="/home/vscode/.local/bin:$PATH"
 
-# Install Claude Code natively with marketplace plugins
-RUN curl -fsSL https://claude.ai/install.sh | bash && \
-  claude plugin marketplace add anthropics/skills && \
-  claude plugin marketplace add trailofbits/skills && \
-  claude plugin marketplace add trailofbits/skills-curated
-
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
 
@@ -93,6 +87,14 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   eval "$(fnm env)" && \
   fnm install ${NODE_VERSION} && \
   fnm default ${NODE_VERSION}
+
+# Install Claude Code via npm with marketplace plugins
+RUN export PATH="$FNM_DIR:$PATH" && \
+  eval "$(fnm env)" && \
+  npm install -g @anthropic-ai/claude-code && \
+  claude plugin marketplace add anthropics/skills && \
+  claude plugin marketplace add trailofbits/skills && \
+  claude plugin marketplace add trailofbits/skills-curated
 
 # Install Oh My Zsh
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
