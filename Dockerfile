@@ -71,7 +71,7 @@ WORKDIR /workspace
 USER vscode
 
 # Set PATH early so claude and other user-installed binaries are available
-ENV PATH="/home/vscode/.local/bin:$PATH"
+ENV PATH="/home/vscode/.local/bin:/home/vscode/.foundry/bin:$PATH"
 
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
@@ -95,6 +95,9 @@ RUN export PATH="$FNM_DIR:$PATH" && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
+
+# Install Foundry (forge, cast, anvil, chisel)
+RUN curl -fsSL https://foundry.paradigm.xyz | bash && foundryup
 
 # Install Oh My Zsh
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
