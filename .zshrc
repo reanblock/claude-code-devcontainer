@@ -54,3 +54,19 @@ _fzf_compgen_dir() {
 
 # Source fzf shell integration (built-in since fzf 0.48+)
 eval "$(fzf --zsh)"
+
+# Git alias
+alias gs='git status '
+alias ga='git add '
+alias gb='git branch '
+alias gc='git commit'
+alias gd='git diff'
+alias gg='git grep -n '
+
+# utilities
+alias psapp='f() { for pid in $(pgrep "$1"); do echo "$pid $1 $(lsof -p $pid -a -d cwd -Fn 2>/dev/null | grep ^n | cut -c2-)"; done }; f'
+export PATH="$HOME/.local/bin:$PATH"
+
+
+# claude system prompts (NOTE: rampup.md is in the claude-code-kit repo)
+alias claude-rampup='claude --system-prompt-file ~/.claude/prompts/rampup.md'
