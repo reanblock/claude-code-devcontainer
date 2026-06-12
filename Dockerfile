@@ -96,6 +96,11 @@ RUN export PATH="$FNM_DIR:$PATH" && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
 
+# Install Codex CLI via npm (https://developers.openai.com/codex/cli)
+RUN export PATH="$FNM_DIR:$PATH" && \
+  eval "$(fnm env)" && \
+  npm install -g @openai/codex
+
 # Install Foundry (forge, cast, anvil, chisel)
 RUN curl -fsSL https://foundry.paradigm.xyz | bash && foundryup
 
