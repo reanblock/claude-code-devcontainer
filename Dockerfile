@@ -101,6 +101,13 @@ RUN export PATH="$FNM_DIR:$PATH" && \
   eval "$(fnm env)" && \
   npm install -g @openai/codex
 
+# Configure Codex CLI to default to unrestricted container-local execution.
+RUN mkdir -p /home/vscode/.codex && \
+  printf '%s\n' \
+    'sandbox_mode = "danger-full-access"' \
+    'approval_policy = "never"' \
+    > /home/vscode/.codex/config.toml
+
 # Install Foundry (forge, cast, anvil, chisel)
 RUN curl -fsSL https://foundry.paradigm.xyz | bash && foundryup
 
