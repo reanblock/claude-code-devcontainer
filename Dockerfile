@@ -1,8 +1,10 @@
 # Claude Code Devcontainer
 # Based on Microsoft devcontainer image for better devcontainer integration
 ARG UV_VERSION=0.10.0
-FROM ghcr.io/astral-sh/uv:${UV_VERSION}@sha256:78a7ff97cd27b7124a5f3c2aefe146170793c56a1e03321dd31a289f6d82a04f AS uv
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:d94c97dd9cacf183d0a6fd12a8e87b526e9e928307674ae9c94139139c0c6eae
+FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:${UV_VERSION}@sha256:78a7ff97cd27b7124a5f3c2aefe146170793c56a1e03321dd31a289f6d82a04f AS uv
+# Pinned to linux/amd64: the Solana (Anza) CLI ships x86_64-linux binaries only and 404s on
+# aarch64-linux, so the whole image is built for amd64 (runs under emulation on Apple Silicon).
+FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:d94c97dd9cacf183d0a6fd12a8e87b526e9e928307674ae9c94139139c0c6eae
 
 ARG TZ
 ENV TZ="$TZ"
@@ -21,6 +23,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   zsh \
   # Build tools
   build-essential \
+  # Solana / Anchor build dependencies
+  pkg-config \
+  libssl-dev \
+  libudev-dev \
+  llvm \
+  libclang-dev \
+  clang \
+  protobuf-compiler \
   # Utilities
   jq \
   nano \
@@ -71,7 +81,7 @@ WORKDIR /workspace
 USER vscode
 
 # Set PATH early so claude and other user-installed binaries are available
-ENV PATH="/home/vscode/.local/bin:/home/vscode/.foundry/bin:$PATH"
+ENV PATH="/home/vscode/.local/bin:/home/vscode/.cargo/bin:/home/vscode/.local/share/solana/install/active_release/bin:/home/vscode/.foundry/bin:$PATH"
 
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
@@ -110,6 +120,21 @@ RUN mkdir -p /home/vscode/.codex && \
 
 # Install Foundry (forge, cast, anvil, chisel)
 RUN curl -fsSL https://foundry.paradigm.xyz | bash && foundryup
+
+# Install Rust toolchain via rustup (provides rustc/cargo in ~/.cargo/bin)
+ARG RUST_VERSION=1.96.0
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+  sh -s -- -y --default-toolchain ${RUST_VERSION} --profile minimal
+
+# Install Solana (Anza) CLI — x86_64-linux only, hence the amd64 platform pin above
+ARG SOLANA_VERSION=v4.0.2
+RUN sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+
+# Install AVM (Anchor Version Manager) and a pinned Anchor (compiled from source)
+ARG ANCHOR_VERSION=0.31.1
+RUN cargo install --git https://github.com/solana-foundation/anchor avm --force && \
+  avm install ${ANCHOR_VERSION} && \
+  avm use ${ANCHOR_VERSION}
 
 # Install Oh My Zsh
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
