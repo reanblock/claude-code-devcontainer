@@ -60,6 +60,7 @@
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "DISABLE_AUTOUPDATER": "1",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "GIT_CONFIG_GLOBAL": "/home/vscode/.gitconfig.local",
     "UV_LINK_MODE": "copy",
