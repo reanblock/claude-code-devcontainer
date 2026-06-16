@@ -54,7 +54,8 @@
     "source=${localEnv:HOME}/.claude/hooks,target=/home/vscode/.claude/hooks,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/status_lines,target=/home/vscode/.claude/status_lines,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/commands,target=/home/vscode/.claude/commands,type=bind,readonly",
-    "source=${localEnv:HOME}/.claude/skills,target=/home/vscode/.claude/skills,type=bind,readonly"
+    "source=${localEnv:HOME}/.claude/skills,target=/home/vscode/.claude/skills,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude/prompts,target=/home/vscode/.claude/prompts,type=bind,readonly"
   ],
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
