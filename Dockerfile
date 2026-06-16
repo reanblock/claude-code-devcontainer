@@ -98,10 +98,18 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   fnm install ${NODE_VERSION} && \
   fnm default ${NODE_VERSION}
 
-# Install Claude Code via npm with marketplace plugins
+# Install Claude Code via npm with marketplace plugins.
+# Force install scripts on and include optional deps so the platform-native binary is
+# actually downloaded (the runtime NPM_CONFIG_IGNORE_SCRIPTS=true / --omit=optional would
+# otherwise leave a non-executable stub -> "Exec format error" when spawning `claude`).
+# Run the native installer explicitly as a fallback, then assert the binary works so a
+# broken build fails here instead of shipping a stub.
 RUN export PATH="$FNM_DIR:$PATH" && \
   eval "$(fnm env)" && \
-  npm install -g @anthropic-ai/claude-code && \
+  npm install -g --include=optional --ignore-scripts=false @anthropic-ai/claude-code && \
+  CC_DIR="$(npm root -g)/@anthropic-ai/claude-code" && \
+  if [ -f "$CC_DIR/install.cjs" ]; then node "$CC_DIR/install.cjs"; fi && \
+  claude --version && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
