@@ -9,6 +9,12 @@ export FNM_DIR="$HOME/.fnm"
 export PATH="$FNM_DIR:$PATH"
 eval "$(fnm env --use-on-cd)"
 
+# Rust / Cargo (rustc, cargo, avm, anchor)
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# Solana (Anza) CLI
+export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
 # History settings
 export HISTFILE=/commandhistory/.zsh_history
 export HISTSIZE=200000
