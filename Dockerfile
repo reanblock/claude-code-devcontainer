@@ -96,7 +96,10 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   export PATH="$FNM_DIR:$PATH" && \
   eval "$(fnm env)" && \
   fnm install ${NODE_VERSION} && \
-  fnm default ${NODE_VERSION}
+  fnm default ${NODE_VERSION} && \
+  corepack enable && \
+  corepack prepare yarn@stable --activate && \
+  yarn --version
 
 # Install Claude Code via npm with marketplace plugins.
 # Force install scripts on and include optional deps so the platform-native binary is
