@@ -213,6 +213,12 @@ Volumes are stored outside the container, so your shell history, Claude settings
 
 ## Troubleshooting
 
+### Claude stops working in container
+
+```bash
+node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+```
+
 ### "devcontainer CLI not found"
 
 ```bash
