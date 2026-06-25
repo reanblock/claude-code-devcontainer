@@ -101,17 +101,14 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   corepack prepare yarn@stable --activate && \
   yarn --version
 
-# Install Claude Code via npm with marketplace plugins.
-# Force install scripts on and include optional deps so the platform-native binary is
-# actually downloaded (the runtime NPM_CONFIG_IGNORE_SCRIPTS=true / --omit=optional would
-# otherwise leave a non-executable stub -> "Exec format error" when spawning `claude`).
-# Run the native installer explicitly as a fallback, then assert the binary works so a
-# broken build fails here instead of shipping a stub.
-RUN export PATH="$FNM_DIR:$PATH" && \
-  eval "$(fnm env)" && \
-  npm install -g --include=optional --ignore-scripts=false @anthropic-ai/claude-code && \
-  CC_DIR="$(npm root -g)/@anthropic-ai/claude-code" && \
-  if [ -f "$CC_DIR/install.cjs" ]; then node "$CC_DIR/install.cjs"; fi && \
+# Install Claude Code via the native installer (Anthropic's recommended method).
+# The native installer downloads the platform-native binary directly into
+# ~/.local/bin/claude (already on PATH) and is NOT an npm package, so the global
+# NPM_CONFIG_IGNORE_SCRIPTS=true hardening cannot strip a postinstall step out of it.
+# Background auto-updates fetch the native binary directly (no npm, no postinstall),
+# so an update can no longer leave behind a broken "native binary not installed" stub.
+# Assert the binary works so a broken build fails here instead of shipping a stub.
+RUN curl -fsSL https://claude.ai/install.sh | bash && \
   claude --version && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \

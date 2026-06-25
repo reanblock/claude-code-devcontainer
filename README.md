@@ -215,8 +215,12 @@ Volumes are stored outside the container, so your shell history, Claude settings
 
 ### Claude stops working in container
 
+Claude Code is installed via Anthropic's native installer, so a background
+auto-update can no longer leave behind a broken binary. If `claude` ever fails to
+start, reinstall the native binary:
+
 ```bash
-node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 ### "devcontainer CLI not found"
