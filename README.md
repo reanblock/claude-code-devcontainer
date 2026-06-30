@@ -1,5 +1,13 @@
 # Claude Code in a devcontainer
 
+# NOTE - there are easier / simpler native solutions such as:
+
+- Run `/sandbox` in claude code terminal
+- Use `&` or `claude --remote` to run via Anthorpics remote cloud compute
+- Use [sprites.dev](https://sprites.dev/) OR
+- Use  [e2b.dev](https://e2b.dev/) 
+- Use (as this repo explains) devcontainer (see below)
+
 A sandboxed development environment for running Claude Code with `bypassPermissions` safely enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
 
 ## Developer Notes
