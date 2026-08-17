@@ -223,12 +223,32 @@ Volumes are stored outside the container, so your shell history, Claude settings
 
 ### Claude stops working in container
 
-Claude Code is installed via Anthropic's native installer, so a background
-auto-update can no longer leave behind a broken binary. If `claude` ever fails to
-start, reinstall the native binary:
+Claude Code is pinned to a specific release (`CLAUDE_CODE_VERSION` in the
+Dockerfile) and the auto-updater is disabled via `DISABLE_AUTOUPDATER=1`, so a
+background update cannot swap in a broken binary.
+
+Do **not** recover with `curl -fsSL https://claude.ai/install.sh | bash`. That
+script always downloads the *latest* build and runs it as the installer, whatever
+version you request. On Apple Silicon this image is pinned to `linux/amd64` (the
+Solana CLI ships no `aarch64-linux` build), so it runs under QEMU emulation, and
+Claude Code releases built with Bun 1.4.0 — 2.1.233 onward — segfault or hang
+there. That is what the installer would pull.
+
+To reinstall by hand, fetch the pinned binary directly:
 
 ```bash
-curl -fsSL https://claude.ai/install.sh | bash
+V=2.1.224   # keep in sync with CLAUDE_CODE_VERSION
+RELEASES=https://downloads.claude.ai/claude-code-releases
+curl -fsSL "$RELEASES/$V/linux-x64/claude" -o ~/.local/bin/claude
+chmod +x ~/.local/bin/claude
+claude --version
+```
+
+Once upstream ships a Bun build that survives QEMU, raise `CLAUDE_CODE_VERSION`
+and rebuild. Check with:
+
+```bash
+curl -fsSL https://downloads.claude.ai/claude-code-releases/latest
 ```
 
 ### "devcontainer CLI not found"

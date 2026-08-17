@@ -101,14 +101,37 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
   corepack prepare yarn@stable --activate && \
   yarn --version
 
-# Install Claude Code via the native installer (Anthropic's recommended method).
-# The native installer downloads the platform-native binary directly into
-# ~/.local/bin/claude (already on PATH) and is NOT an npm package, so the global
+# Install Claude Code by fetching the release binary directly into ~/.local/bin
+# (already on PATH). It is not an npm package, so the global
 # NPM_CONFIG_IGNORE_SCRIPTS=true hardening cannot strip a postinstall step out of it.
-# Background auto-updates fetch the native binary directly (no npm, no postinstall),
-# so an update can no longer leave behind a broken "native binary not installed" stub.
-# Assert the binary works so a broken build fails here instead of shipping a stub.
-RUN curl -fsSL https://claude.ai/install.sh | bash && \
+#
+# Deliberately NOT `curl https://claude.ai/install.sh | bash`: that script always
+# downloads the *latest* binary and executes it as the installer, whatever version
+# you ask it for, so even `install.sh stable` runs latest. Claude Code 2.1.233 is
+# built with Bun 1.4.0, which segfaults (exit 139) or hangs indefinitely under the
+# QEMU x86_64 emulation this amd64-pinned image builds under on Apple Silicon.
+# Every build up to 2.1.224 runs fine there, so the version is pinned and the
+# auto-updater is disabled to stop a background update reintroducing the crash at
+# runtime. Bump CLAUDE_CODE_VERSION once upstream ships a Bun with the fix.
+ARG CLAUDE_CODE_VERSION=2.1.224
+ENV DISABLE_AUTOUPDATER=1
+RUN ARCH=$(dpkg --print-architecture) && \
+  case "${ARCH}" in \
+    amd64) CLAUDE_PLATFORM="linux-x64" ;; \
+    arm64) CLAUDE_PLATFORM="linux-arm64" ;; \
+    *) echo "Unsupported architecture: ${ARCH}" >&2 && exit 1 ;; \
+  esac && \
+  RELEASES="https://downloads.claude.ai/claude-code-releases" && \
+  CHECKSUM=$(curl -fsSL "${RELEASES}/${CLAUDE_CODE_VERSION}/manifest.json" \
+    | jq -r ".platforms[\"${CLAUDE_PLATFORM}\"].checksum") && \
+  case "${CHECKSUM}" in \
+    ""|null) echo "No ${CLAUDE_PLATFORM} entry in manifest for ${CLAUDE_CODE_VERSION}" >&2 && exit 1 ;; \
+  esac && \
+  mkdir -p /home/vscode/.local/bin && \
+  curl -fsSL "${RELEASES}/${CLAUDE_CODE_VERSION}/${CLAUDE_PLATFORM}/claude" \
+    -o /home/vscode/.local/bin/claude && \
+  echo "${CHECKSUM}  /home/vscode/.local/bin/claude" | sha256sum -c - && \
+  chmod +x /home/vscode/.local/bin/claude && \
   claude --version && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \
