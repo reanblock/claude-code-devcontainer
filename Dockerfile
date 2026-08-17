@@ -107,12 +107,16 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
 #
 # Deliberately NOT `curl https://claude.ai/install.sh | bash`: that script always
 # downloads the *latest* binary and executes it as the installer, whatever version
-# you ask it for, so even `install.sh stable` runs latest. Claude Code 2.1.233 is
-# built with Bun 1.4.0, which segfaults (exit 139) or hangs indefinitely under the
-# QEMU x86_64 emulation this amd64-pinned image builds under on Apple Silicon.
-# Every build up to 2.1.224 runs fine there, so the version is pinned and the
-# auto-updater is disabled to stop a background update reintroducing the crash at
-# runtime. Bump CLAUDE_CODE_VERSION once upstream ships a Bun with the fix.
+# you ask it for, so even `install.sh stable` runs latest and the pin below would
+# be silently ignored. Fetching the release artifact directly keeps the version
+# honest and still checksum-verifies it the way the installer does.
+#
+# The version pin is for reproducibility. It is NOT what makes this work on Apple
+# Silicon: `claude` is a Bun binary, and Bun is unreliable under QEMU x86_64
+# emulation (random segfaults and hangs), which is how this amd64-pinned image
+# runs on an ARM Mac unless Docker Desktop's Rosetta emulation is enabled. Rosetta
+# is a prerequisite — see README. Measured on this image, `claude plugin
+# marketplace add` x5: QEMU 0/5, Rosetta 5/5.
 ARG CLAUDE_CODE_VERSION=2.1.224
 ENV DISABLE_AUTOUPDATER=1
 RUN ARCH=$(dpkg --print-architecture) && \

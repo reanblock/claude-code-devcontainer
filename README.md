@@ -37,6 +37,25 @@ Running Claude with `bypassPermissions` on your host machine is risky—it can e
   - [OrbStack](https://orbstack.dev/)
   - [Colima](https://github.com/abiosoft/colima): `brew install colima docker && colima start`
 
+- **On Apple Silicon: x86 emulation must be Rosetta, not QEMU.** This image is
+  pinned to `linux/amd64` because the Solana (Anza) CLI ships no `aarch64-linux`
+  build, so on an ARM Mac it runs emulated. Claude Code is a Bun-compiled binary,
+  and Bun is not reliable under QEMU — it segfaults or hangs at random, which
+  shows up as the build wedging forever on the `claude plugin marketplace add`
+  step with no error. Under Rosetta the same commands are stable.
+
+  Enable it in **Docker Desktop → Settings → General → "Use Rosetta for
+  x86_64/amd64 emulation"** (requires "Use Virtualization framework", macOS 13+,
+  and Docker Desktop 4.16+). Verify with:
+
+  ```bash
+  grep useVirtualizationFrameworkRosetta \
+    ~/Library/Group\ Containers/group.com.docker/settings.json   # want: true
+  ```
+
+  Measured on this image, running `claude plugin marketplace add` five times:
+  QEMU 0/5, Rosetta 5/5.
+
 - **For terminal workflows** (one-time install):
 
   ```bash
@@ -221,20 +240,26 @@ Volumes are stored outside the container, so your shell history, Claude settings
 
 ## Troubleshooting
 
+### Build hangs forever on the Claude Code step
+
+Symptom: the build sits on step `11/21` for tens of minutes with no error, the
+last output being `claude: OK` and a version string. It is not compiling
+anything — `claude plugin marketplace add` has hung.
+
+Cause: x86 emulation is QEMU rather than Rosetta. See
+[Prerequisites](#prerequisites) — enable Rosetta and rebuild. There is no
+timeout on the hung command, so it will never fail on its own; kill it.
+
 ### Claude stops working in container
 
 Claude Code is pinned to a specific release (`CLAUDE_CODE_VERSION` in the
 Dockerfile) and the auto-updater is disabled via `DISABLE_AUTOUPDATER=1`, so a
-background update cannot swap in a broken binary.
+background update cannot swap in a different binary.
 
 Do **not** recover with `curl -fsSL https://claude.ai/install.sh | bash`. That
-script always downloads the *latest* build and runs it as the installer, whatever
-version you request. On Apple Silicon this image is pinned to `linux/amd64` (the
-Solana CLI ships no `aarch64-linux` build), so it runs under QEMU emulation, and
-Claude Code releases built with Bun 1.4.0 — 2.1.233 onward — segfault or hang
-there. That is what the installer would pull.
-
-To reinstall by hand, fetch the pinned binary directly:
+script always downloads the *latest* build and executes it as the installer,
+whatever version you request, which defeats the pin. Fetch the pinned binary
+directly instead:
 
 ```bash
 V=2.1.224   # keep in sync with CLAUDE_CODE_VERSION
@@ -244,8 +269,9 @@ chmod +x ~/.local/bin/claude
 claude --version
 ```
 
-Once upstream ships a Bun build that survives QEMU, raise `CLAUDE_CODE_VERSION`
-and rebuild. Check with:
+The pin is for reproducibility, not a workaround — with Rosetta enabled, current
+releases run fine. To move it forward, check the latest version and bump
+`CLAUDE_CODE_VERSION`:
 
 ```bash
 curl -fsSL https://downloads.claude.ai/claude-code-releases/latest
