@@ -5,11 +5,11 @@
     "dockerfile": "Dockerfile",
     "args": {
       "TZ": "${localEnv:TZ:UTC}",
-      "GIT_DELTA_VERSION": "0.18.2",
+      "GIT_DELTA_VERSION": "0.20.1",
       "ZSH_IN_DOCKER_VERSION": "1.2.1",
-      "RUST_VERSION": "1.96.0",
-      "SOLANA_VERSION": "v4.0.2",
-      "ANCHOR_VERSION": "0.31.1"
+      "RUST_VERSION": "1.99.1",
+      "SOLANA_VERSION": "v4.3.2",
+      "ANCHOR_VERSION": "0.32.2"
     }
   },
   "features": {
@@ -51,6 +51,7 @@
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/settings.json,target=/home/vscode/.claude/host-settings.json,type=bind,readonly",
+    "source=${localEnv:HOME}/.claude/CLAUDE.md,target=/home/vscode/.claude/CLAUDE.md,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/hooks,target=/home/vscode/.claude/hooks,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/status_lines,target=/home/vscode/.claude/status_lines,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/commands,target=/home/vscode/.claude/commands,type=bind,readonly",

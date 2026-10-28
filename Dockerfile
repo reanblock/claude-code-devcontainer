@@ -1,10 +1,10 @@
 # Claude Code Devcontainer
 # Based on Microsoft devcontainer image for better devcontainer integration
-ARG UV_VERSION=0.10.0
-FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:${UV_VERSION}@sha256:78a7ff97cd27b7124a5f3c2aefe146170793c56a1e03321dd31a289f6d82a04f AS uv
+ARG UV_VERSION=0.13.6
+FROM --platform=linux/amd64 ghcr.io/astral-sh/uv:${UV_VERSION}@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 # Pinned to linux/amd64: the Solana (Anza) CLI ships x86_64-linux binaries only and 404s on
 # aarch64-linux, so the whole image is built for amd64 (runs under emulation on Apple Silicon).
-FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:d94c97dd9cacf183d0a6fd12a8e87b526e9e928307674ae9c94139139c0c6eae
+FROM --platform=linux/amd64 mcr.microsoft.com/devcontainers/base:3.0.10-ubuntu24.04@sha256:21e9e3275736cb3bc33a2904b279a2ab292c51fedd53c2963463627d4586c3e6
 
 ARG TZ
 ENV TZ="$TZ"
@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install git-delta
-ARG GIT_DELTA_VERSION=0.18.2
+ARG GIT_DELTA_VERSION=0.20.1
 RUN ARCH=$(dpkg --print-architecture) && \
   curl -fsSL "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" -o /tmp/git-delta.deb && \
   dpkg -i /tmp/git-delta.deb && \
@@ -54,7 +54,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 COPY --from=uv /uv /usr/local/bin/uv
 
 # Install fzf from GitHub releases (newer than apt, includes built-in shell integration)
-ARG FZF_VERSION=0.67.0
+ARG FZF_VERSION=0.74.5
 RUN ARCH=$(dpkg --print-architecture) && \
   case "${ARCH}" in \
     amd64) FZF_ARCH="linux_amd64" ;; \
@@ -157,16 +157,16 @@ RUN mkdir -p /home/vscode/.codex && \
 RUN curl -fsSL https://foundry.paradigm.xyz | bash && foundryup
 
 # Install Rust toolchain via rustup (provides rustc/cargo in ~/.cargo/bin)
-ARG RUST_VERSION=1.96.0
+ARG RUST_VERSION=1.99.1
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
   sh -s -- -y --default-toolchain ${RUST_VERSION} --profile minimal
 
 # Install Solana (Anza) CLI — x86_64-linux only, hence the amd64 platform pin above
-ARG SOLANA_VERSION=v4.0.2
+ARG SOLANA_VERSION=v4.3.2
 RUN sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
 
 # Install AVM (Anchor Version Manager) and a pinned Anchor (compiled from source)
-ARG ANCHOR_VERSION=0.31.1
+ARG ANCHOR_VERSION=0.32.2
 RUN cargo install --git https://github.com/solana-foundation/anchor avm --force && \
   avm install ${ANCHOR_VERSION} && \
   avm use ${ANCHOR_VERSION}
