@@ -31,6 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libclang-dev \
   clang \
   protobuf-compiler \
+  # PostgreSQL server and client (Ubuntu 24.04 ships 16)
+  postgresql \
+  postgresql-client \
   # Utilities
   jq \
   nano \
@@ -41,7 +44,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ipset \
   iptables \
   iproute2 \
-  && apt-get clean && rm -rf /var/lib/apt/lists/*
+  && apt-get clean && rm -rf /var/lib/apt/lists/* \
+  && psql --version \
+  && test -x "$(ls -d /usr/lib/postgresql/*/bin)/postgres"
 
 # Install git-delta
 ARG GIT_DELTA_VERSION=0.20.1
@@ -89,20 +94,23 @@ RUN uv python install 3.13 --default
 # Install ast-grep (AST-based code search)
 RUN uv tool install ast-grep-cli
 
-# Install fnm (Fast Node Manager) and Node 22
-ARG NODE_VERSION=22
+# Install fnm (Fast Node Manager) and Node 24
+ARG NODE_VERSION=24
 ENV FNM_DIR="/home/vscode/.fnm"
 RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_DIR" --skip-shell && \
   export PATH="$FNM_DIR:$PATH" && \
   eval "$(fnm env)" && \
   fnm install ${NODE_VERSION} && \
   fnm default ${NODE_VERSION} && \
+  node --version | grep -q "^v${NODE_VERSION}\." && \
   corepack enable && \
   corepack prepare yarn@stable --activate && \
   yarn --version
 
-# Install Claude Code by fetching the release binary directly into ~/.local/bin
-# (already on PATH). It is not an npm package, so the global
+# Install Claude Code by fetching the release binary into the native installer's
+# layout: ~/.local/share/claude/versions/<ver>, symlinked from ~/.local/bin/claude
+# (already on PATH). A plain file at ~/.local/bin/claude would make `claude update`
+# download new versions but never switch to them. It is not an npm package, so the global
 # NPM_CONFIG_IGNORE_SCRIPTS=true hardening cannot strip a postinstall step out of it.
 #
 # Deliberately NOT `curl https://claude.ai/install.sh | bash`: that script always
@@ -131,12 +139,16 @@ RUN ARCH=$(dpkg --print-architecture) && \
   case "${CHECKSUM}" in \
     ""|null) echo "No ${CLAUDE_PLATFORM} entry in manifest for ${CLAUDE_CODE_VERSION}" >&2 && exit 1 ;; \
   esac && \
-  mkdir -p /home/vscode/.local/bin && \
+  VERSIONS_DIR="/home/vscode/.local/share/claude/versions" && \
+  CLAUDE_BIN="${VERSIONS_DIR}/${CLAUDE_CODE_VERSION}" && \
+  mkdir -p "${VERSIONS_DIR}" /home/vscode/.local/bin && \
   curl -fsSL "${RELEASES}/${CLAUDE_CODE_VERSION}/${CLAUDE_PLATFORM}/claude" \
-    -o /home/vscode/.local/bin/claude && \
-  echo "${CHECKSUM}  /home/vscode/.local/bin/claude" | sha256sum -c - && \
-  chmod +x /home/vscode/.local/bin/claude && \
-  claude --version && \
+    -o "${CLAUDE_BIN}" && \
+  echo "${CHECKSUM}  ${CLAUDE_BIN}" | sha256sum -c - && \
+  chmod +x "${CLAUDE_BIN}" && \
+  ln -sf "${CLAUDE_BIN}" /home/vscode/.local/bin/claude && \
+  test "$(readlink /home/vscode/.local/bin/claude)" = "${CLAUDE_BIN}" && \
+  claude --version | grep -q "^${CLAUDE_CODE_VERSION} " && \
   claude plugin marketplace add anthropics/skills && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
