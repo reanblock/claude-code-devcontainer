@@ -216,9 +216,13 @@ PG_PASSWORD = "vscode"  # Dev-only: Postgres listens on localhost inside the con
 
 
 def _psql_as_postgres(sql):
-    """Run SQL as the postgres superuser over the local socket; return stdout."""
+    """Run SQL as the postgres superuser over the local socket; return stdout.
+
+    Uses `sudo runuser` rather than `sudo -u postgres`: the base image grants
+    vscode `(root) NOPASSWD` only, so sudo-ing to another user prompts for a password.
+    """
     result = subprocess.run(
-        ["sudo", "-u", "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-tAc", sql],
+        ["sudo", "runuser", "-u", "postgres", "--", "psql", "-v", "ON_ERROR_STOP=1", "-tAc", sql],
         check=True,
         capture_output=True,
         text=True,
