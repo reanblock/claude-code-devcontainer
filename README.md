@@ -232,7 +232,8 @@ The container auto-configures `bypassPermissions` mode—Claude runs commands wi
 | Base | Ubuntu 24.04, Node.js 24, Python 3.13 + uv, PostgreSQL 16, zsh |
 | User | `vscode` (passwordless sudo), working dir `/workspace` |
 | Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `iptables`, `ipset` |
-| Volumes (survive rebuilds) | Command history (`/commandhistory`), Claude config (`~/.claude`), GitHub CLI auth (`~/.config/gh`) |
+| PostgreSQL | Auto-starts on container start, localhost only. Dev credentials: `postgres://vscode:vscode@localhost:5432/vscode` (`psql` with no args also works) |
+| Volumes (survive rebuilds) | Command history (`/commandhistory`), Claude config (`~/.claude`), GitHub CLI auth (`~/.config/gh`), PostgreSQL data (`/var/lib/postgresql`) |
 | Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only) |
 | Auto-configured | [anthropics](https://github.com/anthropics/claude-code-plugins) + [trailofbits](https://github.com/trailofbits/claude-code-plugins) skills, git-delta |
 

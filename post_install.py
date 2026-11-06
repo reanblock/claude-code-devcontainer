@@ -5,6 +5,7 @@ Runs on container creation to set up:
 - Claude settings (bypassPermissions mode)
 - Tmux configuration (200k history, mouse support)
 - Directory ownership fixes for mounted volumes
+- PostgreSQL: start server, create `vscode` role/database, self-check
 """
 
 import contextlib
@@ -210,6 +211,56 @@ node_modules/
     print(f"[post_install] Local git config created: {local_gitconfig}", file=sys.stderr)
 
 
+PG_USER = "vscode"
+PG_PASSWORD = "vscode"  # Dev-only: Postgres listens on localhost inside the container.
+
+
+def _psql_as_postgres(sql):
+    """Run SQL as the postgres superuser over the local socket; return stdout."""
+    result = subprocess.run(
+        ["sudo", "-u", "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-tAc", sql],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def setup_postgres():
+    """Start PostgreSQL and create a `vscode` superuser role and database.
+
+    The container has no systemd, so the server is started explicitly here
+    (postCreateCommand runs before postStartCommand on first create) and on
+    every later start by postStartCommand. Idempotent.
+    """
+    subprocess.run(["sudo", "service", "postgresql", "start"], check=True, capture_output=True)
+    subprocess.run(["pg_isready", "-h", "localhost", "-t", "30"], check=True, capture_output=True)
+
+    _psql_as_postgres(
+        "DO $$ BEGIN "
+        f"IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{PG_USER}') THEN "
+        f"CREATE ROLE {PG_USER} WITH LOGIN SUPERUSER PASSWORD '{PG_PASSWORD}'; "
+        "END IF; END $$;"
+    )
+    if _psql_as_postgres(f"SELECT 1 FROM pg_database WHERE datname = '{PG_USER}'") != "1":
+        _psql_as_postgres(f"CREATE DATABASE {PG_USER} OWNER {PG_USER}")
+
+    # Self-check: TCP + password auth, the path app clients use.
+    result = subprocess.run(
+        ["psql", "-h", "localhost", "-U", PG_USER, "-d", PG_USER, "-tAc", "SELECT 1"],
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "PGPASSWORD": PG_PASSWORD},
+    )
+    if result.stdout.strip() != "1":
+        raise RuntimeError(f"unexpected self-check output: {result.stdout!r}")
+    print(
+        f"[post_install] PostgreSQL ready: postgres://{PG_USER}:{PG_PASSWORD}@localhost:5432/{PG_USER}",
+        file=sys.stderr,
+    )
+
+
 def main():
     """Run all post-install configuration."""
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
@@ -218,6 +269,13 @@ def main():
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
+
+    try:
+        setup_postgres()
+    except (subprocess.CalledProcessError, RuntimeError) as e:
+        stderr = getattr(e, "stderr", "") or ""
+        print(f"[post_install] ERROR: PostgreSQL setup failed: {e}\n{stderr}", file=sys.stderr)
+        sys.exit(1)
 
     print("[post_install] Configuration complete!", file=sys.stderr)
 
