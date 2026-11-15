@@ -57,14 +57,8 @@
     "source=${localEnv:HOME}/.claude/status_lines,target=/home/vscode/.claude/status_lines,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/commands,target=/home/vscode/.claude/commands,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/skills,target=/home/vscode/.claude/skills,type=bind,readonly",
-    "source=${localEnv:HOME}/.claude/prompts,target=/home/vscode/.claude/prompts,type=bind,readonly",
-    "source=${localEnv:HOME}/.config/herdr,target=${localEnv:HOME}/.config/herdr,type=bind"
+    "source=${localEnv:HOME}/.claude/prompts,target=/home/vscode/.claude/prompts,type=bind,readonly"
   ],
-  "remoteEnv": {
-    "HERDR_ENV": "${localEnv:HERDR_ENV}",
-    "HERDR_PANE_ID": "${localEnv:HERDR_PANE_ID}",
-    "HERDR_SOCKET_PATH": "${localEnv:HERDR_SOCKET_PATH}"
-  },
   "containerEnv": {
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
@@ -83,6 +77,6 @@
   "initializeCommand": "test -f \"$HOME/.gitconfig\" || touch \"$HOME/.gitconfig\"",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
-  "postCreateCommand": "uv run --no-project /opt/post_install.py && sudo mkdir -p ${localEnv:HOME} && sudo ln -sfn /home/vscode/.claude ${localEnv:HOME}/.claude",
+  "postCreateCommand": "uv run --no-project /opt/post_install.py",
   "postStartCommand": "sudo service postgresql start"
 }
