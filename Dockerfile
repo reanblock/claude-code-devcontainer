@@ -125,7 +125,7 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
 # runs on an ARM Mac unless Docker Desktop's Rosetta emulation is enabled. Rosetta
 # is a prerequisite — see README. Measured on this image, `claude plugin
 # marketplace add` x5: QEMU 0/5, Rosetta 5/5.
-ARG CLAUDE_CODE_VERSION=2.1.224
+ARG CLAUDE_CODE_VERSION=2.1.326
 ENV DISABLE_AUTOUPDATER=1
 RUN ARCH=$(dpkg --print-architecture) && \
   case "${ARCH}" in \
