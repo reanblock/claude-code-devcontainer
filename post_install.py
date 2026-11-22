@@ -3,6 +3,7 @@
 
 Runs on container creation to set up:
 - Claude settings (bypassPermissions mode)
+- Claude plugins enabled on the host (enabledPlugins)
 - Tmux configuration (200k history, mouse support)
 - Directory ownership fixes for mounted volumes
 - PostgreSQL: start server, create `vscode` role/database, self-check
@@ -42,6 +43,94 @@ def setup_claude_settings():
 
     settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     print(f"[post_install] Claude settings configured: {settings_file}", file=sys.stderr)
+    return settings
+
+
+def _read_json(path):
+    """Return parsed JSON from path, or {} if missing/invalid."""
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _marketplace_add_arg(source):
+    """Map a marketplace `source` object to a `claude plugin marketplace add` argument.
+
+    Local `directory`/`file` sources point at host paths that don't exist in the
+    container, so they return None.
+    """
+    if not isinstance(source, dict):
+        return None
+    kind = source.get("source")
+    if kind == "github":
+        return source.get("repo")
+    if kind in ("git", "url"):
+        return source.get("url")
+    return None
+
+
+def setup_claude_plugins(settings, claude_dir=None, run=subprocess.run):
+    """Install the plugins enabled on the host into the container.
+
+    The container's ~/.claude is a separate volume, so plugins installed on the
+    host (~/.claude/plugins) aren't visible here. `enabledPlugins` comes through
+    the merged host settings; marketplace sources come from the host's
+    known_marketplaces.json (mounted read-only at ~/.claude/host-plugins) and
+    `extraKnownMarketplaces`. Failures are warnings: a missing plugin must not
+    block container creation.
+    """
+    enabled = [
+        plugin_id
+        for plugin_id, on in (settings.get("enabledPlugins") or {}).items()
+        if on is True and "@" in plugin_id
+    ]
+    if not enabled:
+        return
+
+    claude_dir = Path(claude_dir) if claude_dir else Path.home() / ".claude"
+    known = _read_json(claude_dir / "plugins" / "known_marketplaces.json")
+    host_known = _read_json(claude_dir / "host-plugins" / "known_marketplaces.json")
+    extra = settings.get("extraKnownMarketplaces") or {}
+
+    def claude(*args):
+        try:
+            result = run(["claude", "plugin", *args], capture_output=True, text=True, timeout=300)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return False, str(e)
+        return result.returncode == 0, (result.stderr or result.stdout or "").strip()
+
+    unavailable = set()
+    for marketplace in sorted({p.rsplit("@", 1)[1] for p in enabled}):
+        if marketplace in known:
+            continue
+        entry = host_known.get(marketplace) or extra.get(marketplace) or {}
+        arg = _marketplace_add_arg(entry.get("source") if isinstance(entry, dict) else None)
+        if arg is None:
+            print(
+                f"[post_install] Warning: no installable source for marketplace '{marketplace}'",
+                file=sys.stderr,
+            )
+            unavailable.add(marketplace)
+            continue
+        ok, out = claude("marketplace", "add", arg)
+        if not ok:
+            print(
+                f"[post_install] Warning: could not add marketplace '{marketplace}': {out}",
+                file=sys.stderr,
+            )
+            unavailable.add(marketplace)
+
+    for plugin_id in enabled:
+        if plugin_id.rsplit("@", 1)[1] in unavailable:
+            print(f"[post_install] Skipping plugin {plugin_id} (marketplace unavailable)", file=sys.stderr)
+            continue
+        ok, out = claude("install", plugin_id)
+        if ok:
+            print(f"[post_install] Installed plugin: {plugin_id}", file=sys.stderr)
+        else:
+            print(f"[post_install] Warning: could not install plugin {plugin_id}: {out}", file=sys.stderr)
 
 
 def setup_tmux_config():
@@ -269,10 +358,11 @@ def main():
     """Run all post-install configuration."""
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
 
-    setup_claude_settings()
+    settings = setup_claude_settings()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
+    setup_claude_plugins(settings)
 
     try:
         setup_postgres()

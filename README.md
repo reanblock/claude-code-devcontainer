@@ -235,7 +235,7 @@ The container auto-configures `bypassPermissions` mode—Claude runs commands wi
 | PostgreSQL | Auto-starts on container start, localhost only. Dev credentials: `postgres://vscode:vscode@localhost:5432/vscode` (`psql` with no args also works) |
 | Volumes (survive rebuilds) | Command history (`/commandhistory`), Claude config (`~/.claude`), GitHub CLI auth (`~/.config/gh`), PostgreSQL data (`/var/lib/postgresql`) |
 | Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only) |
-| Auto-configured | [anthropics](https://github.com/anthropics/claude-code-plugins) + [trailofbits](https://github.com/trailofbits/claude-code-plugins) skills, git-delta |
+| Auto-configured | [anthropics](https://github.com/anthropics/claude-code-plugins) + [trailofbits](https://github.com/trailofbits/claude-code-plugins) skills, git-delta, plus every plugin enabled on the host (`enabledPlugins` in host `~/.claude/settings.json`), installed when the container is created |
 
 Volumes are stored outside the container, so your shell history, Claude settings, and `gh` login persist even after `devc rebuild`. Host `~/.gitconfig` is mounted read-only for git identity.
 
