@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Claude Code Sandbox",
+  "name": "${localWorkspaceFolderBasename}",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
@@ -28,6 +28,7 @@
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.tabs.title": "${workspaceFolderName}: ${process}",
         "terminal.integrated.profiles.linux": {
           "bash": {
             "path": "bash",
@@ -50,7 +51,7 @@
     "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
     "source=claude-code-pgdata-${devcontainerId},target=/var/lib/postgresql,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
-    "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly",
+    "source=${localWorkspaceFolder}/.devcontainer,target=/workspaces/${localWorkspaceFolderBasename}/.devcontainer,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/settings.json,target=/home/vscode/.claude/host-settings.json,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/plugins,target=/home/vscode/.claude/host-plugins,type=bind,readonly",
     "source=${localEnv:HOME}/.claude/CLAUDE.md,target=/home/vscode/.claude/CLAUDE.md,type=bind,readonly",
@@ -76,8 +77,8 @@
     "PIP_DISABLE_PIP_VERSION_CHECK": "1"
   },
   "initializeCommand": "(test -f \"$HOME/.gitconfig\" || touch \"$HOME/.gitconfig\") && mkdir -p \"$HOME/.claude/plugins\"",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
-  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=delegated",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "postCreateCommand": "uv run --no-project /opt/post_install.py",
   "postStartCommand": "sudo service postgresql start"
 }
